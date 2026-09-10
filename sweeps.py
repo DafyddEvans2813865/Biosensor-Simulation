@@ -51,20 +51,8 @@ def plot_ph_sweep(ph_values: NDArray[np.float64],psi_values: NDArray[np.float64]
 
 
 #Test
-def plot_salt_sweep(
-    analyte: Analyte,
-    electrolytes: Sequence[Electrolyte],
-    labels: Sequence[str],
-    out_path: Path,
-    pzc: float | None = PZC_SIO2,
-) -> None:
-    """Plot psi_0 vs pH at several ionic strengths on one axes.
- 
-    The point of the figure is that the curves flatten as salt rises:
-    more salt means a shorter Debye length, a bigger C_DL, and a larger
-    share of the divider taken by the double layer, so less of the
-    surface charge shows up as potential.
-    """
+def plot_salt_sweep(analyte: Analyte,electrolytes: Sequence[Electrolyte],labels: Sequence[str],out_path: Path,pzc: float | None = PZC_SIO2,) -> None:
+    #Plot psi_0 vs pH at several ionic strengths on one axes.
     fig, ax = plt.subplots(figsize=(6, 4))
  
     for electrolyte, label in zip(electrolytes, labels):
