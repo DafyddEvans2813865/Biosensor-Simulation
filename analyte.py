@@ -18,9 +18,3 @@ class Analyte:
 	name: str
 	sites: list[Site]
 	site_density: float
-
-SIO2 = Analyte(
-    name="SiO2",
-    sites=[Site(-2.0, SiteKind.ACIDIC), Site(6.0, SiteKind.BASIC)],
-    site_density=1e18,  # m^-2, from 1e14 cm^-2
-)

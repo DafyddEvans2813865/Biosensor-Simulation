@@ -1,5 +1,12 @@
+from math import log
+
 from analyte import Analyte, SiteKind
-from constants import Q
+from scipy.constants import e as Q
+
+
+def surface_pH(ph_bulk: float, psi_0: float, thermal_voltage: float) -> float:
+    # Convert the bulk pH to the pH experienced by sites at the surface.
+    return ph_bulk + psi_0 / (thermal_voltage * log(10.0))
 
 
 def surface_charge(analyte: Analyte, ph_surface: float) -> float:
@@ -13,3 +20,4 @@ def surface_charge(analyte: Analyte, ph_surface: float) -> float:
     basic_charge = sum( 1.0 / (1.0 + 10.0 ** (ph_surface - site.pk)) for site in analyte.sites if site.kind is SiteKind.BASIC)
 
     return Q * analyte.site_density * (acidic_charge + basic_charge)
+
