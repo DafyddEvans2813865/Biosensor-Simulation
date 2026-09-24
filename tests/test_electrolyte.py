@@ -1,4 +1,7 @@
 from math import isclose
+from pathlib import Path
+
+import numpy as np
 from scipy.constants import epsilon_0 as EPS_0
 
 
@@ -13,6 +16,8 @@ SIO2 = Analyte(
     sites=[Site(-2.0, SiteKind.ACIDIC), Site(6.0, SiteKind.BASIC)],
     site_density=1e18,  # m^-2, from 1e14 cm^-2
 )
+
+SALTS_MM = [1, 10, 100, 1000]
 
 
 ELECTROLYTE_1_MM = Electrolyte(
@@ -85,9 +90,28 @@ def test_sensitivity_falls_with_salt():
         peaks.append(np.max(np.abs(slope(ph, psi))))
     assert peaks[0] > peaks[1] > peaks[2]
 
-plot_salt_sweep(
-    SIO2,
-    [Electrolyte(1.0), Electrolyte(10.0), Electrolyte(100.0)],
-    ["1 mM", "10 mM", "100 mM"],
-    Path("figs/salt_sweep.png"),
-)
+
+def test_sensitivity_gap_is_much_larger_without_stern() -> None:
+    no_stern = [Electrolyte(ionic_strength=i, c_stern=None) for i in SALTS_MM]
+    with_stern = [Electrolyte(ionic_strength=i, c_stern=0.8) for i in SALTS_MM]
+
+    def sensitivity(electrolytes):
+        peaks = []
+        for electrolyte in electrolytes:
+            ph, psi = ph_sweep(SIO2, electrolyte)
+            peaks.append(np.max(np.abs(slope(ph, psi))))
+        return peaks
+
+    no_stern_sens = sensitivity(no_stern)
+    with_stern_sens = sensitivity(with_stern)
+
+    no_stern_gap = no_stern_sens[0] - no_stern_sens[-1]
+    with_stern_gap = with_stern_sens[0] - with_stern_sens[-1]
+
+    assert no_stern_gap > 3.0 * with_stern_gap
+
+
+for c_stern, tag in [(None, "no_stern"), (0.8, "stern")]:
+    electrolytes = [Electrolyte(ionic_strength=i, c_stern=c_stern) for i in SALTS_MM]
+    labels = [f"{i} mM" for i in SALTS_MM]
+    plot_salt_sweep(SIO2, electrolytes, labels, Path(f"figs/salt_sweep_{tag}.png"))
