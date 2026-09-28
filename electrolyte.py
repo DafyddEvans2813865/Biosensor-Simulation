@@ -4,7 +4,7 @@ from scipy.constants import e as Q          # elementary charge, C
 from scipy.constants import k as K_B        # Boltzmann, J/K
 from scipy.constants import epsilon_0 as EPS_0
 from scipy.constants import N_A             # Avogadro
-from math import sinh
+from math import sinh, cosh
 
 @dataclass(frozen=True)
 class Electrolyte:
@@ -41,3 +41,10 @@ class Electrolyte:
 
 	def diffuse_charge(self, psi_0: float) -> float:
 		return -self.q0 * sinh(psi_0 / (2.0 * self.thermal_voltage))
+
+	def c_dif(self, psi_d: float) -> float:
+		# Differential capacitance, F/m^2 (van Hal 1995, Eq. 9)
+		c_d = self.q0 / (2.0 * self.thermal_voltage) * cosh(psi_d / (2.0 * self.thermal_voltage))
+		if self.c_stern is None:
+			return c_d
+		return 1.0 / (1.0 / self.c_stern + 1.0 / c_d)

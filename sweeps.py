@@ -8,15 +8,15 @@ from collections.abc import Sequence
 from analyte import Analyte
 from electrolyte import Electrolyte
 from solver import solve
-
+from surface import AmphotericSurface, ChargedSurface, beta_int
+from charge import surface_pH
 
 PZC_SIO2 = 2.0  # (pKa + pKb) / 2
 
 
-def ph_sweep(analyte: Analyte,electrolyte: Electrolyte,ph_min: float = 1.0,ph_max: float = 12.0,n: int = 200 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    #Solve for psi_0 across a range of bulk pH values.
+def ph_sweep(surface: ChargedSurface, electrolyte: Electrolyte, ph_min: float = 1.0, ph_max: float = 12.0, n: int = 200) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     ph_values = np.linspace(ph_min, ph_max, n)
-    psi_values = np.array([solve(analyte, electrolyte, ph) for ph in ph_values])
+    psi_values = np.array([solve(surface, electrolyte, ph) for ph in ph_values])
     return ph_values, psi_values
 
 def slope(ph_values, psi_values):
@@ -79,5 +79,56 @@ def plot_salt_sweep(analyte: Analyte,electrolytes: Sequence[Electrolyte],labels:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
- 
 
+
+def plot_van_hal(surfaces: Sequence[AmphotericSurface], labels: Sequence[str], electrolyte: Electrolyte, out_path: Path) -> None:
+    if len(surfaces) != len(labels):
+        raise ValueError("surfaces and labels must have the same length")
+
+    vt = electrolyte.thermal_voltage
+    fig, (ax_beta, ax_cdif, ax_alpha) = plt.subplots(1, 3, figsize=(14, 4.5), sharex=True, constrained_layout=True)
+    colors = plt.get_cmap("tab10").colors
+
+    for index, (surface, label) in enumerate(zip(surfaces, labels)):
+        ph_values, psi_values = ph_sweep(surface, electrolyte, surface.pzc - 4.0, surface.pzc + 4.0)
+        delta_ph = ph_values - surface.pzc
+        ph_surface = surface_pH(ph_values, psi_values, vt)
+
+        betas = np.array([beta_int(surface, ph) for ph in ph_surface])
+
+        # C_dif is evaluated at the diffuse-layer potential, after the Stern drop
+        sigma_0 = np.array([surface.charge(ph) for ph in ph_surface])
+        psi_d = psi_values - sigma_0 / electrolyte.c_stern if electrolyte.c_stern is not None else psi_values
+        c_difs = np.array([electrolyte.c_dif(p) for p in psi_d])
+
+        alphas = -slope(ph_values, psi_values) / (np.log(10.0) * vt)
+        color = colors[index % len(colors)]
+
+        ax_beta.plot(delta_ph, betas, color=color, linewidth=2, label=label)
+        ax_cdif.plot(delta_ph, c_difs, color=color, linewidth=2, label=label)
+        ax_alpha.plot(delta_ph, alphas, color=color, linewidth=2, label=label)
+
+    ax_beta.set_yscale("log")
+    ax_beta.set_ylim(1e15, 1e19)
+    ax_beta.set_ylabel(r"$\beta_{int}$ (groups/m$^2$)")
+    ax_beta.set_title("Intrinsic buffer capacity (Fig. 1)")
+
+    ax_cdif.set_ylim(0.10, 0.20)
+    ax_cdif.set_ylabel(r"$C_{dif}$ (F/m$^2$)")
+    ax_cdif.set_title("Differential capacitance (Fig. 2)")
+
+    ax_alpha.set_ylim(0.0, 1.05)
+    ax_alpha.set_ylabel(r"$\alpha$")
+    ax_alpha.set_title("Sensitivity parameter (Fig. 3)")
+
+    for axis in (ax_beta, ax_cdif, ax_alpha):
+        axis.set_xlabel(r"$\Delta$pH")
+        axis.set_xlim(-4.0, 4.0)
+        axis.axvline(0.0, color="0.45", linestyle="-", linewidth=1)
+        axis.grid(alpha=0.25)
+        axis.legend(frameon=False, fontsize=9)
+
+    fig.suptitle("Reproduction of van Hal et al. (1995), 0.1 M, $C_{Stern}$ = 0.2 F/m$^2$", fontsize=13)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=180)
+    plt.close(fig)
