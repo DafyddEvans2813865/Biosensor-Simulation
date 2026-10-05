@@ -4,3 +4,4 @@ matplotlib
 pint
 pytest
 mypy
+rdkit

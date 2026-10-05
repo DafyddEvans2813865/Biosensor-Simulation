@@ -49,6 +49,103 @@ def plot_ph_sweep(ph_values: NDArray[np.float64],psi_values: NDArray[np.float64]
     plt.close(fig)
 
 
+def plot_analyte_sweep_comparison(
+    analytes: Sequence[Analyte],
+    labels: Sequence[str],
+    electrolyte: Electrolyte,
+    out_path: Path,
+) -> None:
+    if len(analytes) != len(labels):
+        raise ValueError("analytes and labels must have the same length")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    styles = ("-", "--", "-", "--")
+    for index, (analyte, label) in enumerate(zip(analytes, labels)):
+        ph_values, psi_values = ph_sweep(analyte, electrolyte)
+        ax.plot(
+            ph_values,
+            psi_values * 1e3,
+            linewidth=2.5 if index % 2 == 0 else 1.8,
+            linestyle=styles[index % len(styles)],
+            label=label,
+            zorder=index + 2,
+        )
+
+    ax.set_xlabel("bulk pH")
+    ax.set_ylabel("surface potential $\\psi_0$ (mV)")
+    ax.set_title("Baseline and TPSA-blocked peptide pH response")
+    ax.legend()
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def plot_tpsa_comparison(
+    baseline: Analyte,
+    ytsf_tpsa: Analyte,
+    yaaf_tpsa: Analyte,
+    ytsf_tpsa_value: float,
+    yaaf_tpsa_value: float,
+    electrolyte: Electrolyte,
+    out_path: Path,
+) -> None:
+    ph_values, baseline_psi = ph_sweep(baseline, electrolyte)
+    _, ytsf_psi = ph_sweep(ytsf_tpsa, electrolyte)
+    _, yaaf_psi = ph_sweep(yaaf_tpsa, electrolyte)
+
+    fig, (ax_response, ax_difference) = plt.subplots(1, 2, figsize=(11, 4), sharex=True)
+
+    ax_response.plot(
+        ph_values,
+        baseline_psi * 1e3,
+        color="0.35",
+        linestyle="--",
+        linewidth=2,
+        label="Baseline (YTSF = YAAF)",
+    )
+    ax_response.plot(
+        ph_values,
+        ytsf_psi * 1e3,
+        color="tab:blue",
+        linewidth=2,
+        label=f"YTSF, TPSA = {ytsf_tpsa_value:.0f} Å²",
+    )
+    ax_response.plot(
+        ph_values,
+        yaaf_psi * 1e3,
+        color="tab:orange",
+        linewidth=2,
+        label=f"YAAF, TPSA = {yaaf_tpsa_value:.0f} Å²",
+    )
+
+    ax_response.set_xlabel("bulk pH")
+    ax_response.set_ylabel("surface potential $\\psi_0$ (mV)")
+    ax_response.set_title("Surface potential")
+    ax_response.legend(fontsize=9)
+    ax_response.grid(alpha=0.3)
+
+    ax_difference.plot(
+        ph_values,
+        (ytsf_psi - yaaf_psi) * 1e3,
+        color="black",
+        linewidth=2,
+        label="Δψ₀ (YTSF − YAAF)",
+    )
+    ax_difference.axhline(0.0, color="0.35", linestyle="--", linewidth=1)
+    ax_difference.set_xlabel("bulk pH")
+    ax_difference.set_ylabel("surface potential difference (mV)")
+    ax_difference.set_title("TPSA response difference")
+    ax_difference.legend(fontsize=9)
+    ax_difference.grid(alpha=0.3)
+
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
 
 #Test
 def plot_salt_sweep(analyte: Analyte,electrolytes: Sequence[Electrolyte],labels: Sequence[str],out_path: Path,pzc: float | None = PZC_SIO2,) -> None:

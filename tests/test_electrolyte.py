@@ -8,17 +8,10 @@ from scipy.constants import epsilon_0 as EPS_0
 from electrolyte import Electrolyte
 from charge import * 
 from solver import solve
-from analyte import *
+from analyte import SIO2, YAAF, YAAF_TPSA, YTSF, YTSF_TPSA, yaaf_TPSA, ytsf_TPSA
 from sweeps import *
 
-SIO2 = Analyte(
-    name="SiO2",
-    sites=[Site(-2.0, SiteKind.ACIDIC), Site(6.0, SiteKind.BASIC)],
-    site_density=1e18,  # m^-2, from 1e14 cm^-2
-)
-
 SALTS_MM = [1, 10, 100, 1000]
-
 
 ELECTROLYTE_1_MM = Electrolyte(
 	ionic_strength=1.0,  # 1 mM converted to 1 mol/m^3
@@ -109,6 +102,21 @@ def test_sensitivity_gap_is_much_larger_without_stern() -> None:
     with_stern_gap = with_stern_sens[0] - with_stern_sens[-1]
 
     assert no_stern_gap > 3.0 * with_stern_gap
+
+
+def test_ytsf_yaaf_same_ph_response() -> None:
+    ph_ytsf, psi_ytsf = ph_sweep(YTSF, ELECTROLYTE_10_MM)
+    ph_yaaf, psi_yaaf = ph_sweep(YAAF, ELECTROLYTE_10_MM)
+
+    assert np.array_equal(ph_ytsf, ph_yaaf)
+    assert np.array_equal(psi_ytsf, psi_yaaf)
+
+
+def test_tpsa_site_densities_are_derived_from_rdkit() -> None:
+    assert isclose(YTSF_TPSA, 211.31, rel_tol=1e-6)
+    assert isclose(YAAF_TPSA, 170.85, rel_tol=1e-6)
+    assert isclose(ytsf_TPSA.site_density, 1e20 / YTSF_TPSA, rel_tol=1e-12)
+    assert isclose(yaaf_TPSA.site_density, 1e20 / YAAF_TPSA, rel_tol=1e-12)
 
 
 for c_stern, tag in [(None, "no_stern"), (0.8, "stern")]:
