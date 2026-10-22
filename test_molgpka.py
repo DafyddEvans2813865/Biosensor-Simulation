@@ -3,9 +3,13 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 import os.path as osp
 import torch
+import warnings
 from utils.ionization_group import get_ionization_aid
 from utils.descriptor import mol2vec
 from utils.net import GCNNet
+
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 root = osp.abspath("")
 
@@ -27,10 +31,12 @@ def predict(smiles):
     for kind in ["acid", "base"]:
         model = load_model(osp.join(root, f"../models/weight_{kind}.pth"))
         for aid in get_ionization_aid(mol, acid_or_base=kind):
-            results.append((kind, round(model_pred(mol, aid, model), 2)))
+            atom = mol.GetAtomWithIdx(aid)
+            parent = atom.GetNeighbors()[0] if atom.GetSymbol() == "H" else atom
+            results.append((kind, parent.GetIdx(), parent.GetSymbol(), round(model_pred(mol, aid, model), 2)))
     return results
 
-# Authors' own MolGpKa predictions, Pan et al. 2021, Figure 4
+# Authors own MolGpKa predictions
 paper = {
     "butan-1-amine":          ("CCCCN",           10.72),
     "2-fluorobutan-1-amine":  ("NCC(F)CC",         8.69),
@@ -45,3 +51,6 @@ paper = {
 }
 for name, (smi, ref) in paper.items():
     print(f"{name:24s} paper {ref:5.2f}  Output {predict(smi)}")
+
+#print("YTSF", predict("N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(N)=O"))
+#print("YAAF", predict("N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H](C)C(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(N)=O"))

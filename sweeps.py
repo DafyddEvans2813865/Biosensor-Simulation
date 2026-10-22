@@ -14,10 +14,11 @@ from charge import surface_pH
 PZC_SIO2 = 2.0  # (pKa + pKb) / 2
 
 
-def ph_sweep(surface: ChargedSurface, electrolyte: Electrolyte, ph_min: float = 1.0, ph_max: float = 12.0, n: int = 200) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def ph_sweep(surface, electrolyte, ph_min: float = 0.0, ph_max: float = 14.0, n: int = 200, boltzmann_ph: bool = True, stern: bool = True):
     ph_values = np.linspace(ph_min, ph_max, n)
-    psi_values = np.array([solve(surface, electrolyte, ph) for ph in ph_values])
+    psi_values = np.array([solve(surface, electrolyte, ph, boltzmann_ph, stern) for ph in ph_values])
     return ph_values, psi_values
+
 
 def slope(ph_values, psi_values):
     return np.gradient(psi_values, ph_values)
@@ -54,14 +55,16 @@ def plot_analyte_sweep_comparison(
     labels: Sequence[str],
     electrolyte: Electrolyte,
     out_path: Path,
+    boltzmann_ph: bool = True,
+    stern: bool = True,
 ) -> None:
     if len(analytes) != len(labels):
         raise ValueError("analytes and labels must have the same length")
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(9, 4))
     styles = ("-", "--", "-", "--")
     for index, (analyte, label) in enumerate(zip(analytes, labels)):
-        ph_values, psi_values = ph_sweep(analyte, electrolyte)
+        ph_values, psi_values = ph_sweep(analyte, electrolyte, boltzmann_ph=boltzmann_ph, stern=stern)
         ax.plot(
             ph_values,
             psi_values * 1e3,
@@ -70,6 +73,7 @@ def plot_analyte_sweep_comparison(
             label=label,
             zorder=index + 2,
         )
+        ax.margins(x=0)
 
     ax.set_xlabel("bulk pH")
     ax.set_ylabel("surface potential $\\psi_0$ (mV)")
@@ -80,7 +84,6 @@ def plot_analyte_sweep_comparison(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
-
 
 def plot_tpsa_comparison(
     baseline: Analyte,
@@ -144,7 +147,7 @@ def plot_tpsa_comparison(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
-
+   
 
 
 #Test

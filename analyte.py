@@ -31,8 +31,10 @@ def _sequence_tpsa(sequence: str) -> float:
 
 
 def _tpsa_site_density(tpsa: float) -> float:
-	# One molecule per TPSA footprint; 1 A^2 = 1e-20 m^2.
-	return 1e20 / tpsa
+	
+	# N0 = 1e18 m^-2 (A0 = 100 Å^2);
+	N0, A0 = 1e18, 100.0
+	return N0 * min(1.0, A0 / tpsa)
 
 
 SIO2 = Analyte(
@@ -42,19 +44,24 @@ SIO2 = Analyte(
 )
 
 YTSF = Analyte("YTSF", [
-	Site(2.2, SiteKind.ACIDIC),
-	Site(9.1, SiteKind.BASIC),
-	Site(10.1, SiteKind.ACIDIC),
+	Site(9.21, SiteKind.BASIC),    # N-terminal amine (CRC)
+	Site(10.46, SiteKind.ACIDIC),  # Tyr phenol (CRC)
 ], site_density=1e18)
 
 YAAF = Analyte("YAAF", [
-	Site(2.2, SiteKind.ACIDIC),
-	Site(9.1, SiteKind.BASIC),
-	Site(10.1, SiteKind.ACIDIC),
+	Site(9.21, SiteKind.BASIC),    # N-terminal amine (CRC)
+	Site(10.46, SiteKind.ACIDIC),  # Tyr phenol (CRC)
 ], site_density=1e18)
 
 YTSF_TPSA = _sequence_tpsa("YTSF")
 YAAF_TPSA = _sequence_tpsa("YAAF")
 
-ytsf_TPSA = Analyte("YTSF_TPSA", YTSF.sites, _tpsa_site_density(YTSF_TPSA))
-yaaf_TPSA = Analyte("YAAF_TPSA", YAAF.sites, _tpsa_site_density(YAAF_TPSA))
+yaaf_TPSA = Analyte("YAAF_TPSA", [
+	Site(7.15, SiteKind.BASIC),   # N-terminal amine (MolGpKa)
+	Site(9.89, SiteKind.ACIDIC),  # Tyr phenol (MolGpKa)
+], _tpsa_site_density(YAAF_TPSA))
+
+ytsf_TPSA = Analyte("YTSF_TPSA", [
+	Site(7.06, SiteKind.BASIC),   # N-terminal amine (MolGpKa)
+	Site(9.82, SiteKind.ACIDIC),  # Tyr phenol (MolGpKa)
+], _tpsa_site_density(YTSF_TPSA))
