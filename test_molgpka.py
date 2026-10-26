@@ -3,13 +3,11 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 import os.path as osp
 import torch
-import warnings
 from utils.ionization_group import get_ionization_aid
 from utils.descriptor import mol2vec
 from utils.net import GCNNet
-
-
-warnings.filterwarnings("ignore", category=UserWarning)
+from rdkit import Chem
+from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 
 root = osp.abspath("")
 
@@ -33,10 +31,11 @@ def predict(smiles):
         for aid in get_ionization_aid(mol, acid_or_base=kind):
             atom = mol.GetAtomWithIdx(aid)
             parent = atom.GetNeighbors()[0] if atom.GetSymbol() == "H" else atom
-            results.append((kind, parent.GetIdx(), parent.GetSymbol(), round(model_pred(mol, aid, model), 2)))
+            on_ring = any(n.GetIsAromatic() for n in parent.GetNeighbors())
+            results.append((kind, parent.GetSymbol(), on_ring, round(model_pred(mol, aid, model), 2)))
     return results
 
-# Authors own MolGpKa predictions
+# Authors' own MolGpKa predictions, Pan et al. 2021, Figure 4
 paper = {
     "butan-1-amine":          ("CCCCN",           10.72),
     "2-fluorobutan-1-amine":  ("NCC(F)CC",         8.69),
@@ -52,5 +51,14 @@ paper = {
 for name, (smi, ref) in paper.items():
     print(f"{name:24s} paper {ref:5.2f}  Output {predict(smi)}")
 
-#print("YTSF", predict("N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(N)=O"))
-#print("YAAF", predict("N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H](C)C(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(N)=O"))
+PEPTIDES = {
+    "YTSF":      "N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(N)=O",
+    "YAAF":      "N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H](C)C(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(N)=O",
+    "YTSF_NBoc": "CC(C)(C)OC(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(N)=O",
+    "YTSF_pS":      "N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](COP(=O)(O)O)C(=O)N[C@@H](Cc1ccccc1)C(N)=O",
+    "YTSF_OGalNAc": "N[C@@H](Cc1ccc(O)cc1)C(=O)N[C@@H]([C@@H](C)OC1OC(CO)C(O)C(O)C1NC(C)=O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(N)=O",
+}
+
+for name, smi in PEPTIDES.items():
+    print(name, CalcMolFormula(Chem.MolFromSmiles(smi)))
+    print(predict(smi))

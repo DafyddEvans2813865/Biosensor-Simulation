@@ -12,7 +12,7 @@ screening. Five tests check the answers are right.
 
 ### pH response
 
-![pH response](figs/ph_sweep.png)
+![pH response](plots/figs/ph_sweep.png)
 
 Crosses zero at pH 2, which is where (pKa + pKb)/2 says it should. Peak slope is
 35.7 mV/pH — under the 59 mV/pH limit, and in the 30–45 range real SiO₂ gives.
@@ -21,7 +21,7 @@ Nothing in the code mentions either number. The slope comes out of the physics.
 
 ### Salt
 
-![salt sweep](figs/salt_sweep.png)
+![salt sweep](plots/figs/salt_sweep.png)
 
 At 1, 10 and 100 mM the slopes are 38, 36 and 31 mV/pH. The flat ends sit at
 −228, −169 and −111 mV.
@@ -48,11 +48,14 @@ Nothing imports upwards.
 | File             | What's in it                                      |
 | ---------------- | ------------------------------------------------- |
 | `constants.py`   | q, k_B, ε₀, N_A                                   |
-| `analyte.py`     | `Site`, `Analyte`, and the `SIO2` instance        |
+| `analyte.py`     | `SiteKind`, `Site`, `Analyte` — types only        |
+| `tpsa.py`        | TPSA and TPSA-based site density (needs RDKit)    |
+| `analytes.py`    | `SIO2` and the peptide definitions                |
 | `charge.py`      | Surface charge and the surface pH shift           |
 | `electrolyte.py` | `Electrolyte` and the Gouy-Chapman charge         |
 | `solver.py`      | `solve` — needs both sides, so it sits above them |
 | `sweeps.py`      | The sweeps and the plots                          |
+| `plots/`         | Plot scripts, with their output in `plots/figs/`  |
 | `tests/`         | Tests only, no model code                         |
 
 ## Running it
@@ -61,6 +64,8 @@ Nothing imports upwards.
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest
+.venv/bin/python -m plots.plot_oxides
+.venv/bin/python -m plots.plot_peptides
 ```
 
 ## To do

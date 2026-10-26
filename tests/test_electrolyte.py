@@ -8,7 +8,7 @@ from scipy.constants import epsilon_0 as EPS_0
 from electrolyte import Electrolyte
 from charge import * 
 from solver import solve
-from analyte import SIO2, YAAF, YAAF_TPSA, YTSF, YTSF_TPSA, yaaf_TPSA, ytsf_TPSA
+from analytes import SIO2, YAAF, YAAF_TPSA, YTSF, YTSF_TPSA, yaaf_TPSA, ytsf_TPSA
 from sweeps import *
 
 SALTS_MM = [1, 10, 100, 1000]
@@ -122,4 +122,4 @@ def test_tpsa_site_densities_are_derived_from_rdkit() -> None:
 for c_stern, tag in [(None, "no_stern"), (0.8, "stern")]:
     electrolytes = [Electrolyte(ionic_strength=i, c_stern=c_stern) for i in SALTS_MM]
     labels = [f"{i} mM" for i in SALTS_MM]
-    plot_salt_sweep(SIO2, electrolytes, labels, Path(f"figs/salt_sweep_{tag}.png"))
+    plot_salt_sweep(SIO2, electrolytes, labels, Path(f"plots/figs/salt_sweep_{tag}.png"))
