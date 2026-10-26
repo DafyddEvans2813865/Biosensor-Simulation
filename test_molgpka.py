@@ -29,7 +29,10 @@ def predict(smiles):
     for kind in ["acid", "base"]:
         model = load_model(osp.join(root, f"../models/weight_{kind}.pth"))
         for aid in get_ionization_aid(mol, acid_or_base=kind):
-            results.append((kind, round(model_pred(mol, aid, model), 2)))
+            atom = mol.GetAtomWithIdx(aid)
+            parent = atom.GetNeighbors()[0] if atom.GetSymbol() == "H" else atom
+            on_ring = any(n.GetIsAromatic() for n in parent.GetNeighbors())
+            results.append((kind, parent.GetSymbol(), on_ring, round(model_pred(mol, aid, model), 2)))
     return results
 
 # Authors' own MolGpKa predictions, Pan et al. 2021, Figure 4
