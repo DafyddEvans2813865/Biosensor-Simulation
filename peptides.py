@@ -1,6 +1,7 @@
 from molgpka import predict
 from rdkit import Chem
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula
+from rdkit.Chem import Draw
 
 # Authors' own MolGpKa predictions, Pan et al. 2021, Figure 4
 PAPER = {
@@ -31,4 +32,9 @@ for name, (smi, ref) in PAPER.items():
 
 for name, smi in PEPTIDES.items():
     print(name, CalcMolFormula(Chem.MolFromSmiles(smi)))    
-    print(predict(smi))                                     
+    print(predict(smi))                   
+
+##Draw the Molecules to check - Note this needs container tweeking for
+mols = [Chem.MolFromSmiles(s) for s in PEPTIDES.values()]
+img = Draw.MolsToGridImage(mols, molsPerRow=2, subImgSize=(500, 400), legends=list(PEPTIDES))
+img.save("/work/plots/ytsf_structures.png") 
